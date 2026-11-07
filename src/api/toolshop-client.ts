@@ -1,4 +1,5 @@
 import { expect, type APIRequestContext, type APIResponse } from '@playwright/test';
+import type { SyntheticUser } from '../data/factories';
 
 export interface Paginated<T> {
   current_page: number;
@@ -19,38 +20,73 @@ export interface Product {
   brand: { id: string; name: string };
 }
 
+/** Extra request headers; an explicit `Authorization` here overrides the client's own bearer. */
+export type HeaderOverrides = Record<string, string>;
+
 /** Thin, typed wrapper over the Toolshop REST API. Assertions stay in the tests. */
 export class ToolshopClient {
-  private token?: string;
+  private accessToken?: string;
 
   constructor(private readonly request: APIRequestContext) {}
 
-  private headers(): Record<string, string> {
-    return this.token ? { Authorization: `Bearer ${this.token}` } : {};
+  /** The bearer currently sent with every request, if any. */
+  get token(): string | undefined {
+    return this.accessToken;
   }
 
+  /** Sends `token` as the bearer from now on (any string, e.g. 'invalid' for negative checks); undefined clears it. */
+  setToken(token: string | undefined): this {
+    this.accessToken = token;
+    return this;
+  }
+
+  private headers(overrides: HeaderOverrides = {}): Record<string, string> {
+    const auth: Record<string, string> = this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {};
+    return { ...auth, ...overrides };
+  }
+
+  /**
+   * `POST /users/login` and keeps the bearer. On failure the message carries the status and body
+   * (e.g. 423 when a shared demo account is locked); never the password, and any token is redacted.
+   */
   async login(email: string, password: string): Promise<string> {
-    const response = await this.request.post('/users/login', { data: { email, password } });
-    expect(response, 'login should succeed for a seeded account').toBeOK();
+    const response = await this.loginResponse(email, password);
+    const text = (await response.text()).replace(/("access_token"\s*:\s*")[^"]*"/g, '$1<redacted>"');
+    expect(response.status(), `login should succeed for ${email}: got ${response.status()} ${text}`).toBe(200);
     const body = (await response.json()) as { access_token: string };
-    this.token = body.access_token;
-    return this.token;
+    this.accessToken = body.access_token;
+    return this.accessToken;
   }
 
-  get(path: string, params?: Record<string, string | number>): Promise<APIResponse> {
-    return this.request.get(path, { params, headers: this.headers() });
+  /** Raw `POST /users/login` with no assertion and no token side effect, for negative tests. */
+  loginResponse(email: string, password: string): Promise<APIResponse> {
+    return this.request.post('/users/login', { data: { email, password } });
   }
 
-  post(path: string, data: unknown): Promise<APIResponse> {
-    return this.request.post(path, { data, headers: this.headers() });
+  /** `POST /users/register`. */
+  register(user: SyntheticUser): Promise<APIResponse> {
+    return this.post('/users/register', user);
   }
 
-  put(path: string, data: unknown): Promise<APIResponse> {
-    return this.request.put(path, { data, headers: this.headers() });
+  /** `DELETE /users/{id}` (admin bearer required for 204). */
+  deleteUser(id: string): Promise<APIResponse> {
+    return this.delete(`/users/${id}`);
   }
 
-  delete(path: string): Promise<APIResponse> {
-    return this.request.delete(path, { headers: this.headers() });
+  get(path: string, params?: Record<string, string | number>, headers?: HeaderOverrides): Promise<APIResponse> {
+    return this.request.get(path, { params, headers: this.headers(headers) });
+  }
+
+  post(path: string, data: unknown, headers?: HeaderOverrides): Promise<APIResponse> {
+    return this.request.post(path, { data, headers: this.headers(headers) });
+  }
+
+  put(path: string, data: unknown, headers?: HeaderOverrides): Promise<APIResponse> {
+    return this.request.put(path, { data, headers: this.headers(headers) });
+  }
+
+  delete(path: string, headers?: HeaderOverrides): Promise<APIResponse> {
+    return this.request.delete(path, { headers: this.headers(headers) });
   }
 
   async products(params: Record<string, string | number> = {}): Promise<Paginated<Product>> {

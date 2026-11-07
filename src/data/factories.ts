@@ -13,7 +13,7 @@ export function syntheticUser(overrides: Partial<SyntheticUser> = {}): Synthetic
     password: `Sx!${tag}Aa9#`,
     dob: '1990-01-01',
     phone: '0000000000',
-    address: { street: '1 Test Street', city: 'Testville', state: 'TS', country: 'NL', postal_code: '0000 AA' },
+    address: { street: '1 Test Street', city: 'Testville', state: 'TS', country: 'NL', postal_code: '0000 AA', house_number: '1' },
     ...overrides,
   };
 }
@@ -25,7 +25,7 @@ export interface SyntheticUser {
   password: string;
   dob: string;
   phone: string;
-  address: { street: string; city: string; state: string; country: string; postal_code: string };
+  address: { street: string; city: string; state: string; country: string; postal_code: string; house_number: string };
 }
 
 export function contactMessage(overrides: Partial<Record<'name' | 'email' | 'subject' | 'message', string>> = {}) {

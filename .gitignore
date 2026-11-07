@@ -8,4 +8,5 @@ reports/
 .env
 .auth/
 *.log
+.playwright-mcp/
 .DS_Store

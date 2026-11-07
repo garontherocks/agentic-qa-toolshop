@@ -44,4 +44,6 @@ user-invocable: false
   states). Always mask the page object's `dynamicWidgets` (chat, live activity, notification bar) and
   any product grid whose data can change: `toHaveScreenshot('VR-03-login-errors.png', { mask: loginPage.dynamicWidgets })`. One screenshot per test, named `<ID>-<state>.png`.
 - **Accessibility** (`tests/a11y`): `scanA11y(page)` from `src/support/a11y`; assert no `critical`/`serious`
-  violations; known issues in the product go to `test.fixme()` with the axe summary, never to an exclude list.
+  violations. When a page has confirmed axe findings, do not `fixme` the test and never exclude rules: assert that
+  `summary` (sorted by rule id) equals exactly the known violations, each tagged with its finding ID in a
+  `finding` annotation, so a new violation or a fixed one fails the test (decided by the owner, 2026-11-07).
