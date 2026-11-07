@@ -10,3 +10,4 @@ reports/
 *.log
 .playwright-mcp/
 .DS_Store
+ci-artifacts/
