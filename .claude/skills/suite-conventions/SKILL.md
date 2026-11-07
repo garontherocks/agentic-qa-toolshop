@@ -45,7 +45,9 @@ user-invocable: false
 - Leave out the tests that create real data unless the run is the one meant to exercise them (see the plan).
 
 ## Per suite
-- **E2E** (`tests/e2e`, Chromium/Firefox/WebKit): user journeys; keep each under ~30 s.
+- **E2E** (`tests/e2e`, Chromium/Firefox/WebKit): user journeys; keep each under ~30 s. A test that should run in
+  one browser only gets the tag `@chromium-only` (Firefox and WebKit exclude it in `playwright.config.ts`); never
+  `test.skip(browserName !== ...)`, which shows up as skipped tests and as run errors in Allure.
 - **API** (`tests/api`, project `api`): status, key fields and error messages per endpoint; auth vs no-auth vs
   wrong role; validation rules discovered from error messages are recorded in `booker-domain`.
 - **Visual** (`tests/visual`, Chromium, Linux baselines next to each spec in `__screenshots__/`, regenerated only

@@ -21,9 +21,9 @@ test.describe('Contact form - real submission', () => {
 
   test(
     'TC-01: visitor sends a message and sees the thank-you',
-    { tag: '@contact' },
-    async ({ page, homePage, browserName }) => {
-      test.skip(browserName !== 'chromium', 'creates a real message on the shared demo; once per full run');
+    // Creates a real message on the shared demo, so it runs once per full run: Chromium only (see playwright.config).
+    { tag: ['@contact', '@chromium-only'] },
+    async ({ page, homePage }) => {
       const { contact } = homePage;
       const message = contactMessage();
 
@@ -147,8 +147,8 @@ test.describe('Contact form', () => {
     await expect(contact.successHeading).toHaveCount(0);
   });
 
-  test.describe('chromium only', () => {
-    test.skip(({ browserName }) => browserName !== 'chromium', 'one browser is enough for the validation matrix and the boundary check');
+  // One browser is enough for the validation matrix and the boundary check (see playwright.config).
+  test.describe('chromium only', { tag: '@chromium-only' }, () => {
 
     const blankRows = [
       { field: 'name', present: [MSG.nameBlank], keyword: 'Name' },
