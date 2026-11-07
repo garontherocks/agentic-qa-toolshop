@@ -18,12 +18,12 @@ export function syntheticGuest(overrides: Partial<SyntheticGuest> = {}): Synthet
   };
 }
 
-export interface SyntheticGuest {
+export type SyntheticGuest = {
   firstname: string;
   lastname: string;
   email: string;
   phone: string;
-}
+};
 
 /**
  * A stay in the far future on random dates, so runs don't collide with each other or with other people's
@@ -49,10 +49,10 @@ export function contactMessage(overrides: Partial<ContactMessage> = {}): Contact
   };
 }
 
-export interface ContactMessage {
+export type ContactMessage = {
   name: string;
   email: string;
   phone: string;
   subject: string;
   description: string;
-}
+};
