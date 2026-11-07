@@ -38,6 +38,12 @@ user-invocable: false
   did not create. Bookings can't be deleted on the hosted demo, so create one only when the test is about booking.
 - Do not depend on other people's bookings and messages, or on the exact rooms and prices: read them from the API.
 
+## Running tests from the shell
+- Always add `--output=test-results-cli` (ignored by git). The Playwright Test MCP server keeps files open in
+  `test-results/`; on Windows a shell run that tries to clean that folder hangs before any test starts.
+- Use `--reporter=line`, never pipe the output through `tail` or `grep` (it hides progress until the end).
+- Leave out the tests that create real data unless the run is the one meant to exercise them (see the plan).
+
 ## Per suite
 - **E2E** (`tests/e2e`, Chromium/Firefox/WebKit): user journeys; keep each under ~30 s.
 - **API** (`tests/api`, project `api`): status, key fields and error messages per endpoint; auth vs no-auth vs

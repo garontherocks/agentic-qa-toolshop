@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { appendHistory, buildFeed, FEED_SCHEMA, FINDINGS_URL, HISTORY_SCHEMA } from './build-run-feed.js';
+import { appendHistory, buildFeed, FEED_SCHEMA, FINDINGS_URL, HISTORY_SCHEMA, parseFindings } from './build-run-feed.js';
 
 function result(root, file, { project, name, group, status, start, duration, historyId }) {
   const dir = path.join(root, 'allure-results');
@@ -33,10 +33,10 @@ test('maps projects to suites and targets, keeps last attempts and the test wind
   assert.deepEqual(e2e.targets.map((t) => [t.name, t.totals.flaky]), [['Chromium', 1], ['WebKit', 0]]);
   assert.equal(api.tests[0].status, 'failed');
   assert.equal(visual.target, 'Chromium');
-  // Skipped tests are not replayed; they are counted as known issues instead.
+  // Skipped tests are not replayed; known issues come from specs/findings.md (none in this fixture).
   assert.equal(a11y, undefined);
   assert.deepEqual(feed.totals, { tests: 4, passed: 3, failed: 1, skipped: 0, flaky: 1, durationMs: 2350 });
-  assert.deepEqual(feed.knownIssues, { count: 1, url: FINDINGS_URL });
+  assert.equal(feed.knownIssues, null);
   assert.deepEqual(feed.window, { startedAt: '1970-01-01T00:00:00.000Z', finishedAt: '1970-01-01T00:00:01.800Z', wallMs: 1800 });
   assert.deepEqual(feed.environment.browsers, ['Chromium', 'WebKit']);
   assert.equal(feed.run.url, 'https://github.com/garontherocks/agentic-qa-toolshop/actions/runs/9');
@@ -72,4 +72,23 @@ test('reads top-level start/stop as written by allure-playwright', async () => {
   const feed = await buildFeed(root, {});
   assert.equal(feed.suites[0].tests[0].durationMs, 2500);
   assert.equal(feed.window.wallMs, 2500);
+});
+
+test('known issues count the findings table rows, not skipped tests', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'agentic-feed-findings-'));
+  test.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(root, 'specs'));
+  fs.writeFileSync(path.join(root, 'specs', 'findings.md'), [
+    '# Product findings', '', '| ID | Area | What | Evidence | Test |', '|---|---|---|---|---|',
+    '| MSG-ANON-READ | Contact | a | b | API-12 |', '| A11Y-MSG-LABEL | Contact | a | b | A11Y-04 |', '', 'Footer text.',
+  ].join('\n'));
+  result(root, 'a', { project: 'e2e-firefox', name: 'TC-01: send', group: 'Contact', status: 'skipped', start: 0, duration: 0 });
+  result(root, 'b', { project: 'e2e-chromium', name: 'TC-01: send', group: 'Contact', status: 'passed', start: 0, duration: 10 });
+  const feed = await buildFeed(root, {});
+  assert.deepEqual(feed.knownIssues, { count: 2, url: FINDINGS_URL });
+  assert.equal(feed.totals.tests, 1);
+});
+
+test('the placeholder row of an empty findings table is not a finding', () => {
+  assert.deepEqual(parseFindings('| ID | Area |\n|---|---|\n| — | — |\n'), []);
 });
