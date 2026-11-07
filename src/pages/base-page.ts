@@ -24,11 +24,27 @@ export abstract class BasePage {
       contact: this.page.getByTestId('nav-contact'),
       signIn: this.page.getByTestId('nav-sign-in'),
       language: this.page.getByTestId('language-select'),
+      /** Signed-in account dropdown toggle and its entries. */
+      menu: this.page.getByTestId('nav-menu'),
+      myAccount: this.page.getByTestId('nav-my-account'),
+      myProfile: this.page.getByTestId('nav-my-profile'),
+      signOut: this.page.getByTestId('nav-sign-out'),
     };
   }
 
-  /** Chat and live-activity widgets change between runs: mask them in screenshots, exclude them in axe. */
+  /** Opens the account menu and signs out (the app then lands on /auth/login). */
+  async signOut(): Promise<void> {
+    await this.nav.menu.click();
+    await this.nav.signOut.click();
+  }
+
+  /** Chat, live-activity, notification and promo widgets change between runs: mask them in screenshots, exclude them in axe. */
   get dynamicWidgets(): Locator[] {
-    return [this.page.getByTestId('chat-toggle'), this.page.getByTestId('live-activity-toggle'), this.page.getByTestId('notification-bar')];
+    return [
+      this.page.getByTestId('chat-toggle'),
+      this.page.getByTestId('live-activity-toggle'),
+      this.page.getByTestId('notification-bar'),
+      this.page.getByTestId('course-promo'),
+    ];
   }
 }

@@ -13,7 +13,7 @@ person approving every step, and run in CI on every push.
 | Suite | Projects | Folder |
 |---|---|---|
 | Functional E2E | Chromium, Firefox, WebKit (1920×1080) | `tests/e2e` |
-| API | REST against `api.practicesoftwaretesting.com` | `tests/api` |
+| API | REST, Toolshop API | `tests/api` |
 | Visual regression | Chromium, Linux baselines | `tests/visual` |
 | Accessibility | axe-core, WCAG 2.1 AA | `tests/a11y` |
 
@@ -36,12 +36,16 @@ npm test                 # everything
 npm run test:smoke       # seed checks only
 ```
 
+To run against a local Toolshop in Docker, as CI does, see [docs/ci-toolshop.md](docs/ci-toolshop.md).
+
 To work with the agents, see [docs/runbook.md](docs/runbook.md).
 
 ## Notes
 
-- Toolshop is © Testsmith; this repo only tests the public hosted app. Its database is shared, so the suite uses
-  synthetic data and keeps load low. The demo accounts it uses are published in Toolshop's own README.
+- Toolshop is © Testsmith, all rights reserved. CI tests a private, throwaway Toolshop started from Testsmith's
+  published Docker images in each job ([docs/ci-toolshop.md](docs/ci-toolshop.md)); agents and local runs use the
+  hosted site, whose database is shared, so the suite uses synthetic data and keeps load low. The demo accounts it
+  uses are published in Toolshop's own README.
 - The run feed published to Pages follows the `sdet-portfolio/run-feed@1` contract from
   [sdet-portfolio](https://github.com/garontherocks/sdet-portfolio/blob/main/docs/run-feed.md).
 

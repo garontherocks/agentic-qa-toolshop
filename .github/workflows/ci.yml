@@ -22,6 +22,11 @@ permissions:
 
 env:
   PAGES_URL: https://garontherocks.github.io/agentic-qa-toolshop
+  # Every suite runs against a private Toolshop started in the job (ci/toolshop), not the hosted site:
+  # the hosted site sits behind a Cloudflare challenge that blocks GitHub runners. See docs/ci-toolshop.md.
+  TOOLSHOP_URL: http://localhost:4200
+  TOOLSHOP_API_URL: http://localhost:8091
+  PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.64.1-noble
 
 jobs:
   static:
@@ -40,15 +45,16 @@ jobs:
       - name: List tests per project
         run: npx playwright test --list
 
-  # One job per suite so a slow or failing suite doesn't hide the others. All run in the official
-  # Playwright image (browsers and system deps preinstalled). Keep the tag in sync with @playwright/test.
+  # One job per suite so a slow or failing suite doesn't hide the others. Each job starts its own Toolshop
+  # with Docker, then runs Playwright in the official image (browsers and system deps preinstalled) on the
+  # host network so the browser reaches localhost:4200 and :8091. Keep the image tag in sync with @playwright/test.
   suite:
     needs: static
     runs-on: ubuntu-24.04
-    container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
-      options: --user 1001
-    timeout-minutes: 30
+    # Write access only so a manual "update_snapshots" run can commit the regenerated baselines.
+    permissions:
+      contents: write
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -63,21 +69,20 @@ jobs:
             args: --project=a11y
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-      - name: Install dependencies
-        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
-      - name: Ensure browsers match the installed Playwright
-        run: npx playwright install
-        timeout-minutes: 10
+      - name: Start Toolshop (Sprint 5) and seed it
+        run: bash ci/toolshop/up.sh
+        timeout-minutes: 15
       - name: Run ${{ matrix.name }}
-        env:
-          CI: 'true'
         run: |
           extra=""
           if [ "${{ matrix.name }}" = "visual" ] && [ "${{ inputs.update_snapshots }}" = "true" ]; then extra="--update-snapshots"; fi
-          npx playwright test ${{ matrix.args }} --pass-with-no-tests $extra
+          docker run --rm --network host --ipc host --user "$(id -u):$(id -g)" \
+            -e CI=true -e HOME=/tmp/home -e TOOLSHOP_URL -e TOOLSHOP_API_URL \
+            -v "$GITHUB_WORKSPACE:/work" -w /work "$PLAYWRIGHT_IMAGE" \
+            bash -c "npm ci --no-audit --no-fund && npx playwright install && npx playwright test ${{ matrix.args }} --pass-with-no-tests $extra"
+      - name: Toolshop logs
+        if: failure()
+        run: docker compose -f ci/toolshop/compose.yml logs --no-color --tail 300 | tee toolshop-logs.txt || true
       - name: Upload Allure results
         if: always()
         uses: actions/upload-artifact@v7
@@ -94,13 +99,17 @@ jobs:
           path: |
             playwright-report/
             test-results/
+            toolshop-logs.txt
           retention-days: 14
-      - name: Upload regenerated visual baselines
-        if: always() && matrix.name == 'visual' && inputs.update_snapshots
-        uses: actions/upload-artifact@v7
-        with:
-          name: visual-baselines
-          path: tests/visual/__screenshots__/
+      - name: Commit regenerated visual baselines to this branch
+        if: success() && matrix.name == 'visual' && inputs.update_snapshots && github.ref != 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/visual
+          if git diff --cached --quiet; then echo "Baselines unchanged."; exit 0; fi
+          git commit -m "test(visual): regenerate Linux baselines (run ${{ github.run_number }})"
+          git push origin "HEAD:${{ github.ref_name }}"
 
   report:
     needs: suite
@@ -132,7 +141,7 @@ jobs:
           cat > allure-results/executor.json <<JSON
           {"name":"GitHub Actions","type":"github","buildOrder":${{ github.run_number }},"buildName":"Run #${{ github.run_number }}","buildUrl":"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}","reportUrl":"$PAGES_URL/allure/","reportName":"agentic-qa-toolshop"}
           JSON
-          printf 'App=https://practicesoftwaretesting.com\nAPI=https://api.practicesoftwaretesting.com\nBrowsers=Chromium, Firefox, WebKit\nViewport=1920x1080\nRunner=%s %s\nCommit=%s\n' "$RUNNER_OS" "$RUNNER_ARCH" "${{ github.sha }}" > allure-results/environment.properties
+          printf 'App=Toolshop Sprint 5 in Docker (%s)\nAPI=%s\nBrowsers=Chromium, Firefox, WebKit\nViewport=1920x1080\nRunner=%s %s\nCommit=%s\n' "$TOOLSHOP_URL" "$TOOLSHOP_API_URL" "$RUNNER_OS" "$RUNNER_ARCH" "${{ github.sha }}" > allure-results/environment.properties
       - name: Build the Allure report and the run feed
         run: |
           npx allure generate allure-results -o site/allure --clean
