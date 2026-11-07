@@ -30,7 +30,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  snapshotPathTemplate: '{testDir}/visual/__screenshots__/{projectName}/{testFilePath}/{arg}{ext}',
+  // Baselines sit next to their spec: tests/visual/<area>/__screenshots__/<spec file>/<name>.png
+  snapshotPathTemplate: '{testDir}/{testFileDir}/__screenshots__/{testFileName}/{arg}{ext}',
   projects: [
     // seed.spec.ts is the agents' starting point (planner/generator); it also runs as a smoke check.
     { name: 'e2e-chromium', testMatch: ['e2e/**/*.spec.ts', 'seed.spec.ts'], use: { ...devices['Desktop Chrome'], viewport } },

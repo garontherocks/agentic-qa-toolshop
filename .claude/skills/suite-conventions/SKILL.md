@@ -40,7 +40,8 @@ user-invocable: false
 - **E2E** (`tests/e2e`, Chromium/Firefox/WebKit): user journeys; keep each under ~30 s.
 - **API** (`tests/api`, project `api`): status, key fields and error messages per endpoint; auth vs no-auth vs
   wrong role; validation rules discovered from error messages are recorded in `toolshop-domain`.
-- **Visual** (`tests/visual`, Chromium, Linux baselines): stable states only (forms, empty states, error
+- **Visual** (`tests/visual`, Chromium, Linux baselines next to each spec in `__screenshots__/`, regenerated only
+  by the CI `update_snapshots` run): stable states only (forms, empty states, error
   states). Always mask the page object's `dynamicWidgets` (chat, live activity, notification bar) and
   any product grid whose data can change: `toHaveScreenshot('VR-03-login-errors.png', { mask: loginPage.dynamicWidgets })`. One screenshot per test, named `<ID>-<state>.png`.
 - **Accessibility** (`tests/a11y`): `scanA11y(page)` from `src/support/a11y`; assert no `critical`/`serious`

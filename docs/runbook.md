@@ -28,8 +28,9 @@ Suggested order (by risk): `auth`, `product-search`, `cart-checkout`, `contact`,
    `evidence/reviews/...`. Stop points ask you before anything is committed.
 3. Check the session log in `evidence/agent-runs/` says what really happened, then commit on a branch and open a
    PR. CI must be green before merging.
-4. Visual baselines: run the workflow manually with **update_snapshots**, download `visual-baselines`, commit
-   them under `tests/visual/__screenshots__/`.
+4. Visual baselines (Linux only): Actions → **Agentic QA Suite** → Run workflow → pick your branch → tick
+   **update_snapshots**. The run commits the baselines to that branch (never to `main`); review the images in the
+   PR, then push any commit to re-run the checks.
 
 ## When CI is red
 
