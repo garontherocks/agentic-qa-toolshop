@@ -1,0 +1,160 @@
+name: Agentic QA Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: Regenerate the visual baselines (Linux) and upload them as an artifact
+        type: boolean
+        default: false
+
+concurrency:
+  group: agentic-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  PAGES_URL: https://garontherocks.github.io/agentic-qa-toolshop
+
+jobs:
+  static:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Feed builder tests
+        run: npm run feed:test
+      - name: List tests per project
+        run: npx playwright test --list
+
+  # One job per suite so a slow or failing suite doesn't hide the others. All run in the official
+  # Playwright image (browsers and system deps preinstalled). Keep the tag in sync with @playwright/test.
+  suite:
+    needs: static
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --user 1001
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: e2e
+            args: --project=e2e-chromium --project=e2e-firefox --project=e2e-webkit
+          - name: api
+            args: --project=api
+          - name: visual
+            args: --project=visual
+          - name: a11y
+            args: --project=a11y
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - name: Ensure browsers match the installed Playwright
+        run: npx playwright install
+        timeout-minutes: 10
+      - name: Run ${{ matrix.name }}
+        env:
+          CI: 'true'
+        run: |
+          extra=""
+          if [ "${{ matrix.name }}" = "visual" ] && [ "${{ inputs.update_snapshots }}" = "true" ]; then extra="--update-snapshots"; fi
+          npx playwright test ${{ matrix.args }} --pass-with-no-tests $extra
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: allure-results-${{ matrix.name }}
+          path: allure-results/
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Upload Playwright report and traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-${{ matrix.name }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+      - name: Upload regenerated visual baselines
+        if: always() && matrix.name == 'visual' && inputs.update_snapshots
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-baselines
+          path: tests/visual/__screenshots__/
+
+  report:
+    needs: suite
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - name: Collect suite results
+        uses: actions/download-artifact@v8
+        with:
+          pattern: allure-results-*
+          path: allure-results
+          merge-multiple: true
+      - name: Restore published history
+        run: |
+          mkdir -p allure-results/history site/run
+          for file in history.json history-trend.json duration-trend.json categories-trend.json retry-trend.json; do
+            curl -fsSL "$PAGES_URL/allure/history/$file" -o "allure-results/history/$file" || rm -f "allure-results/history/$file"
+          done
+          curl -fsSL "$PAGES_URL/run/history.json" -o previous-run-history.json || rm -f previous-run-history.json
+      - name: Describe the run for Allure
+        run: |
+          cat > allure-results/executor.json <<JSON
+          {"name":"GitHub Actions","type":"github","buildOrder":${{ github.run_number }},"buildName":"Run #${{ github.run_number }}","buildUrl":"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}","reportUrl":"$PAGES_URL/allure/","reportName":"agentic-qa-toolshop"}
+          JSON
+          printf 'App=https://practicesoftwaretesting.com\nAPI=https://api.practicesoftwaretesting.com\nBrowsers=Chromium, Firefox, WebKit\nViewport=1920x1080\nRunner=%s %s\nCommit=%s\n' "$RUNNER_OS" "$RUNNER_ARCH" "${{ github.sha }}" > allure-results/environment.properties
+      - name: Build the Allure report and the run feed
+        run: |
+          npx allure generate allure-results -o site/allure --clean
+          node scripts/build-run-feed.js site/run --previous-history previous-run-history.json
+          printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=allure/"><title>agentic-qa-toolshop</title><a href="allure/">Allure report</a>\n' > site/index.html
+      - name: Upload site
+        uses: actions/upload-artifact@v7
+        with:
+          name: site
+          path: site/
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: report
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
