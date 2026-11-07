@@ -32,6 +32,12 @@ Suggested order (by risk): `auth`, `product-search`, `cart-checkout`, `contact`,
    **update_snapshots**. The run commits the baselines to that branch (never to `main`); review the images in the
    PR, then push any commit to re-run the checks.
 
+## Running tests by hand
+
+Use `npx playwright test <file> --project=e2e-chromium --reporter=line --output=test-results-cli`. The separate
+output folder matters on Windows: the Playwright Test MCP server keeps files open in `test-results/`, and a run
+that tries to clean that folder hangs before starting.
+
 ## When CI is red
 
 `/triage-ci <path to downloaded allure-results or test-results>` → the triager classifies each failure; you

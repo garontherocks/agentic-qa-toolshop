@@ -11,3 +11,4 @@ reports/
 .playwright-mcp/
 .DS_Store
 ci-artifacts/
+test-results-cli/

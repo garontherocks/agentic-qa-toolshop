@@ -4,8 +4,8 @@
 // Usage: node scripts/build-run-feed.js [output-dir] [--previous-history <file>]
 // Reads allure-results/*-result.json; writes <output-dir>/latest.json and <output-dir>/history.json.
 //
-// Skipped tests (test.fixme / test.skip for product findings) are not replayed: the feed lists the tests that ran,
-// and `knownIssues` counts the skipped ones and links to where they are documented.
+// Skipped tests (fixme for product findings, or a test skipped on purpose in some browsers) are not replayed: the
+// feed lists the tests that ran, and `knownIssues` counts the findings documented in specs/findings.md.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -107,10 +107,24 @@ function runMetadata(env) {
   };
 }
 
+/** Finding IDs from the table in specs/findings.md: first cell of each data row, placeholders ("—") excluded. */
+export function parseFindings(markdown) {
+  const ids = [];
+  for (const line of (markdown || '').split('\n')) {
+    const cells = line.trim().startsWith('|') ? line.split('|').slice(1, -1).map((cell) => cell.trim()) : null;
+    if (!cells?.length) continue;
+    const [id] = cells;
+    if (!id || id === 'ID' || /^[-:—\s]+$/.test(id)) continue;
+    ids.push(id);
+  }
+  return ids;
+}
+
 export async function buildFeed(root, env = process.env, now = new Date()) {
   const { tests: all, window } = await readResults(path.join(root, 'allure-results'));
   const tests = all.filter((test) => test.status !== 'skipped');
-  const skipped = all.length - tests.length;
+  let findings = [];
+  try { findings = parseFindings(await fs.readFile(path.join(root, 'specs', 'findings.md'), 'utf8')); } catch { /* no findings file */ }
   const byOrder = (a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name) || a.target.localeCompare(b.target);
   const suites = SUITES.map((definition) => {
     const own = tests
@@ -138,7 +152,7 @@ export async function buildFeed(root, env = process.env, now = new Date()) {
     run: runMetadata(env),
     window,
     totals: summarise(ran),
-    knownIssues: skipped > 0 ? { count: skipped, url: FINDINGS_URL } : null,
+    knownIssues: findings.length > 0 ? { count: findings.length, url: FINDINGS_URL } : null,
     suites,
     environment: {
       ui: env.APP_URL || 'https://automationintesting.online',
