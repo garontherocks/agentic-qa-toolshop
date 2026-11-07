@@ -5,7 +5,7 @@ tools: Read, Glob, Grep, Bash, mcp__playwright__*
 model: sonnet
 skills:
   - flaky-triage
-  - toolshop-domain
+  - booker-domain
 color: orange
 maxTurns: 40
 ---

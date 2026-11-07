@@ -60,7 +60,7 @@ Kind: url / data-test / endpoint / status / message / account. "probe 2026-11-07
 |---|---|---|
 | Nav menubar: Home /, Categories, Contact /contact, Sign in /auth/login (anonymous) | url | snapshots 2026-11-07 |
 | Login page /auth/login: h3 "Login", "Sign in with Google", Email address, Password (+ show-password button), button "Login", links "Register your account" /auth/register and "Forgot your Password?" /auth/forgot-password | url | snapshots 2026-11-07 |
-| Login data-test ids email, password, login-submit, nav-sign-in; failed-login message element data-test login-error | data-test | toolshop-domain skill; login-error: probe 2026-11-07 |
+| Login data-test ids email, password, login-submit, nav-sign-in; failed-login message element data-test login-error | data-test | booker-domain skill; login-error: probe 2026-11-07 |
 | Empty login submit: "Email is required", "Password is required"; email "not-an-email": "Email format is invalid" | message | snapshots 2026-11-07 |
 | UI login with unknown email: "Invalid email or password", POST /users/login 401 | message/status | snapshots 2026-11-07 |
 | UI login with a wrong password for an existing synthetic user: POST /users/login 401, text "Invalid email or password" shown in data-test login-error, URL stays /auth/login | message/status | probe 2026-11-07 |
@@ -95,7 +95,7 @@ Kind: url / data-test / endpoint / status / message / account. "probe 2026-11-07
 | GET /reports/total-sales-of-years: anonymous 401 {"message":"Unauthorized"}; customer 403 {"message":"Forbidden"}; admin 200, array of {year, total} | status/keys | probe 2026-11-07 |
 | GET /invoices anonymous 401 {"message":"Unauthorized"} | status | probe 2026-11-07 |
 | User A (synthetic) on user B (synthetic): GET /users/{B} 404 {"error":"You are not authorized to view this user."}; PUT /users/{B} 403 {"error":"You can only update your own data."}; DELETE /users/{B} 403 {"message":"Forbidden"}; anonymous DELETE /users/{B} 401 {"message":"Unauthorized"}; admin GET /users/{B} afterwards 200 with first_name "QA", unchanged | status/message | probe 2026-11-07 |
-| Admin DELETE /users/{id} 204; user deleting self 403 | status | toolshop-domain skill, probe 2026-11-07 (admin DELETE 204 confirmed for 2 users) |
+| Admin DELETE /users/{id} 204; user deleting self 403 | status | booker-domain skill, probe 2026-11-07 (admin DELETE 204 confirmed for 2 users) |
 | POST /users/register 201, body keys first_name, last_name, dob, phone, email, id, created_at, address {street, house_number, city, state, country, postal_code}; no password key | status/keys | probe 2026-11-07 |
 | POST /users/register same email again: 409 {"email":["A customer with this email address already exists."]} | status/message | probe 2026-11-07 |
 | POST /users/register empty body {}: 422 with keys first_name "The first name field is required.", last_name "The last name field is required.", email "The email field is required.", password "The password field is required." (each an array with one string); dob, phone, address are not reported as required | status/message | probe 2026-11-07 |
@@ -104,7 +104,7 @@ Kind: url / data-test / endpoint / status / message / account. "probe 2026-11-07
 | /users/refresh: GET without a token 500 {"message":"Server Error"} 2/2 and GET with Authorization: Bearer invalid 500 {"message":"Server Error"} 2/2 (finding REFRESH-500); POST 405 {"message":"Method is not allowed for the requested route"} (not routed); GET with valid token 200, keys access_token, token_type, expires_in | status/message | probe 2026-11-07; triager 2026-11-07 |
 | axe on /auth/login and /auth/register (two identical runs): button-name (critical) for the show-password toggle (login, register); label-content-name-mismatch (serious) for language-select (aria-label "Select language" vs visible "EN"); list (serious) for the password-rules ul that directly contains a ul (register) | message | a11y runs 2026-11-07, 2/2 |
 | Swagger UI /api/documentation (Toolshop API 5.0.0); spec JSON /docs?api-docs.json | endpoint | live check 2026-11-07 |
-| JWT has a role claim (user / admin) and lives 300 s | status | toolshop-domain skill (API response 2026-11-07) |
+| JWT has a role claim (user / admin) and lives 300 s | status | booker-domain skill (API response 2026-11-07) |
 
 ## Not verified / not generated
 1. Forgot-password: input that yields 422 vs 404, success message (TC-15, API-14 pending; probe before round 2).
@@ -126,7 +126,7 @@ Kind: url / data-test / endpoint / status / message / account. "probe 2026-11-07
 2. Lockout threshold: CLOSED. Exact threshold asserted in API-10 (3 x 401, then 423 on the 4th attempt, and 423 for the correct password afterwards); if it varies, triage.
 3. Should the UI success path after registration show a message? Today it redirects to /auth/login silently; TC-13 asserts only the redirect.
 4. API-16: ANSWERED. It asserts only the valid-token GET (200 plus keys); anonymous behaviour is finding REFRESH-500 (API-17).
-5. Add the verified ids and facts above to the toolshop-domain skill (the planner does not edit it).
+5. Add the verified ids and facts above to the booker-domain skill (the planner does not edit it).
 6. /admin for anonymous visitors: is a redirect to /auth/login or a "not authorised" message intended? TC-17 asserts the redirect, consistent with /account. Owner decision.
 
 ## Test Scenarios

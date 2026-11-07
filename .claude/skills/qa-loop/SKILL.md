@@ -1,6 +1,6 @@
 ---
 name: qa-loop
-description: Run the full agentic loop (plan, generate, run, heal, review) for one Toolshop area through the qa-manager agent.
+description: Run the full agentic loop (plan, generate, run, heal, review) for one area of the app under test through the qa-manager agent.
 argument-hint: "<area> e.g. checkout, product-search, auth, contact, api-products, visual-forms, a11y-core"
 disable-model-invocation: true
 ---

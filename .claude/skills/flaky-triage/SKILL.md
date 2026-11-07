@@ -11,7 +11,7 @@ Error message, failing step in the trace (`npx playwright show-trace`), screensh
 whether it passes alone, pass ratio over 3 isolated runs, and the plan step it implements.
 
 ## Usual causes → allowed fix
-- Locator matches 0 or many → use `data-test`/role, scope to a container.
+- Locator matches 0 or many → use role, `data-testid` or `#id`, scope to a container.
 - Asserting before data arrives → web-first assertion on the final state (`toHaveText`, `toHaveCount`).
 - Navigation race → `await expect(page).toHaveURL(...)` before the next step.
 - Shared data (another user changed it) → own your data via factories/API setup; never read others' state.

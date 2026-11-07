@@ -1,11 +1,11 @@
 ---
 name: qa-manager
-description: Orchestrates the agentic QA loop for one Toolshop area (plan → generate → run → heal → review) and keeps specs/coverage.md current. Use when asked to cover, extend or audit an area of the suite.
+description: Orchestrates the agentic QA loop for one area of the app under test (plan → generate → run → heal → review) and keeps specs/coverage.md current. Use when asked to cover, extend or audit an area of the suite.
 tools: Agent, Read, Write, Edit, Glob, Grep, Bash
 model: opus
 skills:
   - suite-conventions
-  - toolshop-domain
+  - booker-domain
   - evidence-log
 color: purple
 maxTurns: 60

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { appendHistory, buildFeed, FEED_SCHEMA, HISTORY_SCHEMA } from './build-run-feed.js';
+import { appendHistory, buildFeed, FEED_SCHEMA, FINDINGS_URL, HISTORY_SCHEMA } from './build-run-feed.js';
 
 function result(root, file, { project, name, group, status, start, duration, historyId }) {
   const dir = path.join(root, 'allure-results');
@@ -27,14 +27,16 @@ test('maps projects to suites and targets, keeps last attempts and the test wind
 
   const feed = await buildFeed(root, { GITHUB_RUN_ID: '9', GITHUB_RUN_NUMBER: '3', GITHUB_REPOSITORY: 'garontherocks/agentic-qa-toolshop' }, new Date('2026-11-07T00:00:00Z'));
   assert.equal(feed.schema, FEED_SCHEMA);
-  assert.deepEqual(feed.suites.map((suite) => suite.id), ['functional-e2e', 'api', 'visual', 'a11y']);
+  assert.deepEqual(feed.suites.map((suite) => suite.id), ['functional-e2e', 'api', 'visual']);
   const [e2e, api, visual, a11y] = feed.suites;
   assert.equal(e2e.target, 'Chromium and WebKit');
   assert.deepEqual(e2e.targets.map((t) => [t.name, t.totals.flaky]), [['Chromium', 1], ['WebKit', 0]]);
   assert.equal(api.tests[0].status, 'failed');
   assert.equal(visual.target, 'Chromium');
-  assert.equal(a11y.totals.skipped, 1);
-  assert.deepEqual(feed.totals, { tests: 5, passed: 3, failed: 1, skipped: 1, flaky: 1, durationMs: 2350 });
+  // Skipped tests are not replayed; they are counted as known issues instead.
+  assert.equal(a11y, undefined);
+  assert.deepEqual(feed.totals, { tests: 4, passed: 3, failed: 1, skipped: 0, flaky: 1, durationMs: 2350 });
+  assert.deepEqual(feed.knownIssues, { count: 1, url: FINDINGS_URL });
   assert.deepEqual(feed.window, { startedAt: '1970-01-01T00:00:00.000Z', finishedAt: '1970-01-01T00:00:01.800Z', wallMs: 1800 });
   assert.deepEqual(feed.environment.browsers, ['Chromium', 'WebKit']);
   assert.equal(feed.run.url, 'https://github.com/garontherocks/agentic-qa-toolshop/actions/runs/9');
@@ -55,6 +57,7 @@ test('an empty run produces an empty feed', async () => {
   const feed = await buildFeed(root, {});
   assert.equal(feed.totals.tests, 0);
   assert.equal(feed.window, null);
+  assert.equal(feed.knownIssues, null);
 });
 
 test('reads top-level start/stop as written by allure-playwright', async () => {
