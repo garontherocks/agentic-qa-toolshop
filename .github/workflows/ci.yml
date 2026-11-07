@@ -104,7 +104,8 @@ jobs:
 
   report:
     needs: suite
-    if: ${{ !cancelled() }}
+    # Runs when the suites ran, green or red; skipped when static checks stopped them.
+    if: ${{ !cancelled() && needs.suite.result != 'skipped' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
