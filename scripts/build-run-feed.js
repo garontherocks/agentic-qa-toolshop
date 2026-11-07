@@ -43,6 +43,8 @@ export function summarise(tests) {
 }
 
 const joinNames = (names) => (names.length <= 1 ? names[0] || '' : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`);
+// allure-playwright writes start/stop at the top level of each result; older writers nest them in `time`.
+const timing = (result) => [result.start ?? result.time?.start, result.stop ?? result.time?.stop];
 const label = (result, name) => result.labels?.find((item) => item.name === name)?.value;
 const parameter = (result, name) => result.parameters?.find((item) => item.name === name)?.value;
 
@@ -61,13 +63,15 @@ export async function readResults(dir) {
   let start = null;
   let stop = null;
   for (const runs of attempts.values()) {
-    runs.sort((a, b) => (a.time?.stop ?? 0) - (b.time?.stop ?? 0));
+    runs.sort((a, b) => (timing(a)[1] ?? 0) - (timing(b)[1] ?? 0));
     for (const run of runs) {
-      if (Number.isFinite(run.time?.start)) start = Math.min(start ?? run.time.start, run.time.start);
-      if (Number.isFinite(run.time?.stop)) stop = Math.max(stop ?? run.time.stop, run.time.stop);
+      const [runStart, runStop] = timing(run);
+      if (Number.isFinite(runStart)) start = Math.min(start ?? runStart, runStart);
+      if (Number.isFinite(runStop)) stop = Math.max(stop ?? runStop, runStop);
     }
     const last = runs.at(-1);
-    const measured = Number.isFinite(last.time?.start) && Number.isFinite(last.time?.stop) ? last.time.stop - last.time.start : 0;
+    const [lastStart, lastStop] = timing(last);
+    const measured = Number.isFinite(lastStart) && Number.isFinite(lastStop) ? lastStop - lastStart : 0;
     tests.push({
       project: last.project,
       name: last.name,

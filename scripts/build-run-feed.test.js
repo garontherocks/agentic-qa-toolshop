@@ -56,3 +56,17 @@ test('an empty run produces an empty feed', async () => {
   assert.equal(feed.totals.tests, 0);
   assert.equal(feed.window, null);
 });
+
+test('reads top-level start/stop as written by allure-playwright', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'agentic-feed-top-'));
+  test.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const dir = path.join(root, 'allure-results');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'a-result.json'), JSON.stringify({
+    historyId: 'seed', name: 'home page lists products', status: 'passed', start: 1000, stop: 3500,
+    labels: [{ name: 'subSuite', value: 'Seed' }], parameters: [{ name: 'Project', value: 'e2e-chromium' }],
+  }));
+  const feed = await buildFeed(root, {});
+  assert.equal(feed.suites[0].tests[0].durationMs, 2500);
+  assert.equal(feed.window.wallMs, 2500);
+});
