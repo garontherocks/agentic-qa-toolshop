@@ -7,11 +7,20 @@ compose=(docker compose -f "$(dirname "$0")/compose.yml")
 ui="${TOOLSHOP_URL:-http://localhost:4200}"
 api="${TOOLSHOP_API_URL:-http://localhost:8091}"
 
+diagnose() {
+  echo "::group::Toolshop diagnostics"
+  "${compose[@]}" ps -a || true
+  curl -sS -i --max-time 10 "$api/products" | head -40 || true
+  curl -sS -i --max-time 10 "$ui" | head -20 || true
+  "${compose[@]}" logs --no-color --tail 80 || true
+  echo "::endgroup::"
+}
+
 wait_for() { # <description> <seconds> <command...>
   local what="$1" limit="$2"; shift 2
   local start=$SECONDS
   until "$@" >/dev/null 2>&1; do
-    if (( SECONDS - start > limit )); then echo "::error::Timed out after ${limit}s waiting for $what"; return 1; fi
+    if (( SECONDS - start > limit )); then echo "::error::Timed out after ${limit}s waiting for $what"; diagnose; return 1; fi
     sleep 3
   done
   echo "$what ready after $(( SECONDS - start ))s"

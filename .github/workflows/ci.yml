@@ -82,7 +82,7 @@ jobs:
             bash -c "npm ci --no-audit --no-fund && npx playwright install && npx playwright test ${{ matrix.args }} --pass-with-no-tests $extra"
       - name: Toolshop logs
         if: failure()
-        run: docker compose -f ci/toolshop/compose.yml logs --no-color --tail 300 > toolshop-logs.txt || true
+        run: docker compose -f ci/toolshop/compose.yml logs --no-color --tail 300 | tee toolshop-logs.txt || true
       - name: Upload Allure results
         if: always()
         uses: actions/upload-artifact@v7
