@@ -14,7 +14,11 @@ and the date. If something here turns out to be wrong, fix it and say so in the 
 |---|---|---|
 | 5 (default) | https://practicesoftwaretesting.com | https://api.practicesoftwaretesting.com |
 | 5 with bugs | https://with-bugs.practicesoftwaretesting.com | https://api-with-bugs.practicesoftwaretesting.com |
-Source: testsmith-io/practice-software-testing README. The database is shared by everyone using the site.
+| 5 in Docker (CI) | http://localhost:4200 | http://localhost:8091 |
+Source: testsmith-io/practice-software-testing README. The hosted database is shared by everyone using the site.
+CI never uses the hosted site: Cloudflare challenges GitHub runners (verified 2026-11-07, CI run of PR #5), so each
+job starts a private Toolshop with `ci/toolshop/up.sh` and a fresh seed (`docs/ci-toolshop.md`). Facts verified on
+the hosted site are assumed to hold in Docker; if one doesn't, record the difference here.
 
 ## Seeded accounts (public, from the app's README)
 `admin@practicesoftwaretesting.com`, `customer@practicesoftwaretesting.com`,
