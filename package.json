@@ -2,7 +2,7 @@
   "name": "agentic-qa-toolshop",
   "version": "0.1.0",
   "private": true,
-  "description": "Agentic QA suite for the Toolshop demo app: Claude Code agents over Playwright MCP, with E2E, API, visual and accessibility suites.",
+  "description": "Agentic QA suite for the Restful-booker platform demo app: Claude Code agents over Playwright MCP, with E2E, API, visual and accessibility suites.",
   "author": "Víctor Martín Aller",
   "license": "MIT",
   "type": "module",

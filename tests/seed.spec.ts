@@ -1,18 +1,20 @@
 import { test, expect } from '../src/support/fixtures';
 
-// Seed test for the Playwright agents. The planner explores from here and the generator copies
-// its structure: imports from src/support/fixtures, page objects from src/pages, data-test locators.
+// Seed test for the Playwright agents. The planner explores from here and the generator copies its structure:
+// imports from src/support/fixtures, page objects from src/pages, role and data-testid locators.
 // Keep it small, stable and human-written.
 test.describe('Seed', () => {
-  test('home page lists products and the main navigation @smoke', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('nav-home')).toBeVisible();
-    await expect(page.getByTestId('nav-sign-in')).toBeVisible();
-    await expect(page.getByTestId('product-name').first()).toBeVisible();
+  test('front page shows the B&B, its rooms and the contact form @smoke', async ({ homePage, api }) => {
+    const rooms = await api.rooms();
+    await homePage.goto();
+    await expect(homePage.rooms.getByRole('heading', { level: 2 })).toHaveText('Our Rooms');
+    await expect(homePage.rooms.getByText('Book now', { exact: true })).toHaveCount(rooms.length);
+    await expect(homePage.contact.name).toBeVisible();
   });
 
-  test('a seeded customer can sign in @smoke', async ({ customerPage }) => {
-    await expect(customerPage).toHaveURL(/\/account/);
-    await expect(customerPage.getByTestId('nav-sign-in')).toBeHidden();
+  test('admin page asks for credentials @smoke', async ({ page, adminLoginPage }) => {
+    await adminLoginPage.goto();
+    await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible();
+    await expect(adminLoginPage.submit).toBeEnabled();
   });
 });

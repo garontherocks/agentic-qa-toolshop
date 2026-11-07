@@ -3,6 +3,9 @@
 //
 // Usage: node scripts/build-run-feed.js [output-dir] [--previous-history <file>]
 // Reads allure-results/*-result.json; writes <output-dir>/latest.json and <output-dir>/history.json.
+//
+// Skipped tests (test.fixme / test.skip for product findings) are not replayed: the feed lists the tests that ran,
+// and `knownIssues` counts the skipped ones and links to where they are documented.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -10,6 +13,7 @@ import path from 'node:path';
 export const FEED_SCHEMA = 'sdet-portfolio/run-feed@1';
 export const HISTORY_SCHEMA = 'sdet-portfolio/run-history@1';
 export const HISTORY_LIMIT = 20;
+export const FINDINGS_URL = 'https://github.com/garontherocks/agentic-qa-toolshop/blob/main/specs/findings.md';
 
 // Playwright project → suite and target. Order here is the order on the page.
 export const SUITES = [
@@ -104,7 +108,9 @@ function runMetadata(env) {
 }
 
 export async function buildFeed(root, env = process.env, now = new Date()) {
-  const { tests, window } = await readResults(path.join(root, 'allure-results'));
+  const { tests: all, window } = await readResults(path.join(root, 'allure-results'));
+  const tests = all.filter((test) => test.status !== 'skipped');
+  const skipped = all.length - tests.length;
   const byOrder = (a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name) || a.target.localeCompare(b.target);
   const suites = SUITES.map((definition) => {
     const own = tests
@@ -125,17 +131,18 @@ export async function buildFeed(root, env = process.env, now = new Date()) {
     };
   }).filter((suite) => suite.tests.length > 0);
 
-  const all = suites.flatMap((suite) => suite.tests);
+  const ran = suites.flatMap((suite) => suite.tests);
   return {
     schema: FEED_SCHEMA,
     generatedAt: now.toISOString(),
     run: runMetadata(env),
     window,
-    totals: summarise(all),
+    totals: summarise(ran),
+    knownIssues: skipped > 0 ? { count: skipped, url: FINDINGS_URL } : null,
     suites,
     environment: {
-      ui: env.TOOLSHOP_URL || 'https://practicesoftwaretesting.com',
-      api: env.TOOLSHOP_API_URL || 'https://api.practicesoftwaretesting.com',
+      ui: env.APP_URL || 'https://automationintesting.online',
+      api: `${env.API_URL || env.APP_URL || 'https://automationintesting.online'}/api`,
       browsers: [...new Set(suites.filter((suite) => suite.id !== 'api').flatMap((suite) => suite.targets.map((target) => target.name.replace(' · axe', ''))))],
       runner: env.RUNNER_OS ? `${env.RUNNER_OS} ${env.RUNNER_ARCH || ''}`.trim() : `${process.platform} ${process.arch}`,
       node: process.version,

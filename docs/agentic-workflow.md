@@ -18,7 +18,7 @@
 | `failure-triager` | ours | Classifies red runs: test defect, product defect, environment, flaky | nothing |
 
 **Skills** carry the knowledge every agent shares: `suite-conventions` (how tests are written),
-`toolshop-domain` (verified facts about the app), `flaky-triage`, `evidence-log`. **Commands** (`/qa-loop`,
+`booker-domain` (verified facts about the app), `flaky-triage`, `evidence-log`. **Commands** (`/qa-loop`,
 `/plan-area`, `/review-tests`, `/triage-ci`) are the entry points a human uses.
 
 **Guardrails**: project permissions allow running tests and reading git freely, ask before commits, pushes and
