@@ -12,7 +12,8 @@ diagnose() {
   "${compose[@]}" ps -a || true
   curl -sS -i --max-time 10 "$api/products" | head -40 || true
   curl -sS -i --max-time 10 "$ui" | head -20 || true
-  "${compose[@]}" logs --no-color --tail 80 || true
+  for service in web laravel-api mariadb; do "${compose[@]}" logs --no-color --tail 40 "$service" || true; done
+  "${compose[@]}" logs --no-color --tail 15 angular-ui || true
   echo "::endgroup::"
 }
 
