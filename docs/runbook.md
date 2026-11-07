@@ -12,7 +12,9 @@ Everything below runs on your machine with Claude Code. CI only runs the tests t
 4. Add the browser MCP for exploration and triage (project scope, so it lands in `.mcp.json` next to the other):
    `claude mcp add --scope project playwright -- npx @playwright/mcp@latest`
 5. Start Claude Code in the repo (`claude`), accept the project MCP servers and the `mattpocock-skills`
-   plugin when asked, and check with `/agents` and `/mcp` that everything is there.
+   plugin when asked. Check with `/mcp` that both servers are connected, and ask Claude to list the project's
+   subagents and skills: it should name the three `playwright-test-*` agents plus `qa-manager`,
+   `test-reviewer` and `failure-triager`.
 6. GitHub: Settings → Pages → Source: **GitHub Actions** (so `main` publishes the Allure report and the feed).
 
 ## The loop, per area

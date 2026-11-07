@@ -22,8 +22,7 @@
     "deny": [
       "Read(./.env)",
       "Read(./.env.*)",
-      "Edit(tests/seed.spec.ts)",
-      "Write(tests/seed.spec.ts)"
+      "Edit(tests/seed.spec.ts)"
     ]
   },
   "hooks": {
