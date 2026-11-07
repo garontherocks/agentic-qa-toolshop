@@ -36,8 +36,10 @@ export default defineConfig({
   projects: [
     // seed.spec.ts is the agents' starting point (planner/generator); it also runs as a smoke check.
     { name: 'e2e-chromium', testMatch: ['e2e/**/*.spec.ts', 'seed.spec.ts'], use: { ...devices['Desktop Chrome'], viewport } },
-    { name: 'e2e-firefox', testMatch: 'e2e/**/*.spec.ts', use: { ...devices['Desktop Firefox'], viewport } },
-    { name: 'e2e-webkit', testMatch: 'e2e/**/*.spec.ts', use: { ...devices['Desktop Safari'], viewport } },
+    // Tests tagged @chromium-only (real submissions, validation matrices) are not scheduled on the other browsers
+    // at all, instead of being skipped at runtime: no skipped noise in the reports.
+    { name: 'e2e-firefox', testMatch: 'e2e/**/*.spec.ts', grepInvert: /@chromium-only/, use: { ...devices['Desktop Firefox'], viewport } },
+    { name: 'e2e-webkit', testMatch: 'e2e/**/*.spec.ts', grepInvert: /@chromium-only/, use: { ...devices['Desktop Safari'], viewport } },
     { name: 'api', testMatch: 'api/**/*.spec.ts', use: { baseURL: API_URL } },
     // Baselines are platform-specific: they are generated and compared in the CI Linux container only.
     { name: 'visual', testMatch: 'visual/**/*.spec.ts', use: { ...devices['Desktop Chrome'], viewport } },
